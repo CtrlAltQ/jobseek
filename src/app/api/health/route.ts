@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
-import { getEnvironmentConfig } from '../../../../config/environments';
+import { getEnvironmentConfig } from '../../../../../config/environments';
 import { MonitoringService } from '@/lib/monitoring';
 
 interface HealthStatus {
