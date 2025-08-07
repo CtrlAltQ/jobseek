@@ -1,28 +1,8 @@
-# Web scraping dependencies (lightweight for Render)
+# Essential dependencies only
 beautifulsoup4==4.12.3
 requests==2.32.3
 aiohttp==3.9.1
-lxml==4.9.3
-
-# AI processing
 openai==1.58.1
-anthropic==0.40.0
-
-# Data processing
-pandas==2.0.3
-numpy==1.24.3
-
-# Database
 pymongo==4.6.1
-
-# Scheduling and utilities
-schedule==1.2.2
 python-dotenv==1.0.1
-pydantic==2.10.4
-
-# Testing
-pytest==8.3.4
-pytest-asyncio==0.25.0
-
-# Monitoring and error tracking
-sentry-sdk==2.34.1
+schedule==1.2.2
