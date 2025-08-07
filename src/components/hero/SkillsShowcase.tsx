@@ -104,6 +104,7 @@ const SkillsShowcase = () => {
                     transition: { duration: 0.2 }
                   }}
                   className={`${skill.color} rounded-lg p-3 text-center cursor-default transition-all duration-200 hover:shadow-md`}
+                  tabIndex={-1}
                 >
                   <div className="text-lg mb-1">{skill.icon}</div>
                   <div className="text-sm font-medium">{skill.name}</div>

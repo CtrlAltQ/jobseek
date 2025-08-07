@@ -66,6 +66,7 @@ const JobsChart: React.FC<JobsChartProps> = ({ jobsOverTime }) => {
                     transition={{ duration: 0.8, delay: index * 0.1 }}
                     className="bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-sm hover:from-blue-600 hover:to-blue-500 transition-colors cursor-pointer"
                     style={{ minHeight: item.count > 0 ? '4px' : '0px' }}
+                    tabIndex={-1}
                   />
                   
                   {/* Tooltip */}
