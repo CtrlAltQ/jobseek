@@ -1,0 +1,137 @@
+{
+  "agents": {
+    "indeed": {
+      "enabled": true,
+      "max_retries": 3,
+      "retry_delay": 300,
+      "timeout": 1800,
+      "rate_limit": 1.0,
+      "search_params": {
+        "job_titles": [
+          "Software Engineer",
+          "Frontend Developer",
+          "Full Stack Developer"
+        ],
+        "keywords": [
+          "React",
+          "JavaScript",
+          "Python",
+          "Remote"
+        ],
+        "locations": [
+          "Remote",
+          "Nashville, TN"
+        ],
+        "remote_ok": true,
+        "job_type": "full-time",
+        "days_back": 7,
+        "max_pages": 3
+      }
+    },
+    "linkedin": {
+      "enabled": true,
+      "max_retries": 2,
+      "retry_delay": 600,
+      "timeout": 2400,
+      "rate_limit": 0.5,
+      "search_params": {
+        "job_titles": [
+          "Software Engineer",
+          "Frontend Developer"
+        ],
+        "keywords": [
+          "React",
+          "TypeScript",
+          "Node.js"
+        ],
+        "locations": [
+          "Remote",
+          "Nashville, TN"
+        ],
+        "remote_ok": true,
+        "job_type": "full-time",
+        "days_back": 7,
+        "max_pages": 2
+      }
+    },
+    "remote_ok": {
+      "enabled": true,
+      "max_retries": 3,
+      "retry_delay": 180,
+      "timeout": 900,
+      "rate_limit": 1.0,
+      "search_params": {
+        "job_titles": [
+          "Developer",
+          "Engineer"
+        ],
+        "keywords": [
+          "JavaScript",
+          "Python",
+          "React"
+        ],
+        "remote_ok": true,
+        "job_type": "full-time",
+        "days_back": 7,
+        "max_pages": 5
+      }
+    },
+    "weworkremotely": {
+      "enabled": true,
+      "max_retries": 3,
+      "retry_delay": 180,
+      "timeout": 900,
+      "rate_limit": 1.0,
+      "search_params": {
+        "job_titles": [
+          "Developer",
+          "Engineer"
+        ],
+        "keywords": [
+          "JavaScript",
+          "Python",
+          "React"
+        ],
+        "remote_ok": true,
+        "job_type": "full-time",
+        "days_back": 7,
+        "max_pages": 3
+      }
+    }
+  },
+  "scraping": {
+    "max_retries": 2,
+    "retry_delay": 5,
+    "sources": {
+      "indeed": {
+        "enabled": true
+      },
+      "linkedin": {
+        "enabled": true
+      },
+      "remote_ok": {
+        "enabled": true
+      },
+      "weworkremotely": {
+        "enabled": true
+      }
+    }
+  },
+  "ai": {
+    "enabled": true,
+    "relevance_threshold": 70,
+    "process_descriptions": true,
+    "generate_summaries": true
+  },
+  "api": {
+    "base_url": "http://localhost:3000/api",
+    "api_key": null,
+    "timeout": 30,
+    "max_retries": 3
+  },
+  "logging": {
+    "level": "INFO",
+    "max_log_files": 10,
+    "max_log_size_mb": 50
+  }
+}

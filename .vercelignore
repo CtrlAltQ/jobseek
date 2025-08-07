@@ -1,0 +1,10 @@
+agents/
+*.log
+.env.local
+.pytest_cache/
+__pycache__/
+*.pyc
+node_modules/
+.next/
+coverage/
+.DS_Store

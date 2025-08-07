@@ -1,0 +1,18 @@
+services:
+  - type: cron
+    name: ai-job-finder-agents
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python start.py
+    schedule: "0 */4 * * *"  # Run every 4 hours
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      - key: AGENT_API_KEY
+        sync: false

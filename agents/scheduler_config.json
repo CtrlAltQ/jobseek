@@ -1,0 +1,50 @@
+{
+  "enabled": true,
+  "timezone": "America/Chicago",
+  "tasks": {
+    "main_job_search": {
+      "name": "Main Job Search",
+      "frequency": "every_4_hours",
+      "enabled": true,
+      "description": "Primary job search across all enabled sources"
+    },
+    "quick_check": {
+      "name": "Quick Remote Jobs Check",
+      "frequency": "every_2_hours",
+      "enabled": true,
+      "description": "Quick check of remote job boards only",
+      "agent_filter": [
+        "remote_ok",
+        "weworkremotely"
+      ]
+    },
+    "daily_comprehensive": {
+      "name": "Daily Comprehensive Search",
+      "frequency": "daily",
+      "enabled": true,
+      "description": "Comprehensive daily search with all sources",
+      "schedule_time": "09:00"
+    },
+    "demo_task": {
+      "name": "Demo Task - Every 30 seconds",
+      "frequency": "custom",
+      "enabled": true,
+      "custom_schedule": "*/30 * * * * *"
+    }
+  },
+  "execution_settings": {
+    "max_concurrent_executions": 1,
+    "execution_timeout": 3600,
+    "retry_failed_tasks": true,
+    "retry_delay": 1800,
+    "max_retries": 2
+  },
+  "notifications": {
+    "enabled": false,
+    "webhook_url": null,
+    "notify_on_success": false,
+    "notify_on_failure": true,
+    "notify_on_jobs_found": true,
+    "min_jobs_for_notification": 5
+  }
+}
