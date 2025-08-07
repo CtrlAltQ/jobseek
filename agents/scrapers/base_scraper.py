@@ -12,8 +12,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Dict, Optional, Set
 from dataclasses import dataclass, asdict
-from playwright.async_api import async_playwright, Browser, Page, BrowserContext
 import random
+import aiohttp
+from bs4 import BeautifulSoup
 
 import sys
 import os
@@ -73,15 +74,13 @@ class JobData:
         return hashlib.md5(unique_string.encode()).hexdigest()
 
 class BaseJobScraper(ABC):
-    """Abstract base class for all job scrapers."""
+    """Abstract base class for all job scrapers using aiohttp."""
     
     def __init__(self, source_name: str, base_url: str, rate_limit: float = 1.0):
         self.source_name = source_name
         self.base_url = base_url
         self.rate_limit = rate_limit
-        self.browser: Optional[Browser] = None
-        self.context: Optional[BrowserContext] = None
-        self.page: Optional[Page] = None
+        self.session: Optional[aiohttp.ClientSession] = None
         self.jobs_found: List[JobData] = []
         self.duplicate_hashes: Set[str] = set()
         self.errors: List[str] = []
@@ -89,84 +88,42 @@ class BaseJobScraper(ABC):
         
     async def __aenter__(self):
         """Async context manager entry."""
-        await self.setup_browser()
+        await self.setup_session()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.cleanup()
         
-    async def setup_browser(self):
-        """Initialize Playwright browser and context."""
+    async def setup_session(self):
+        """Initialize aiohttp session."""
         try:
-            self.playwright = await async_playwright().start()
+            # Create session with headers
+            headers = {
+                'User-Agent': random.choice(USER_AGENTS),
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            }
             
-            # Launch browser with stealth settings
-            self.browser = await self.playwright.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-blink-features=AutomationControlled',
-                    '--disable-dev-shm-usage',
-                    '--disable-extensions',
-                    '--disable-gpu',
-                    '--no-first-run',
-                    '--no-default-browser-check',
-                    '--disable-default-apps'
-                ]
+            timeout = aiohttp.ClientTimeout(total=30)
+            self.session = aiohttp.ClientSession(
+                headers=headers,
+                timeout=timeout,
+                connector=aiohttp.TCPConnector(limit=10)
             )
             
-            # Create context with random user agent
-            user_agent = random.choice(USER_AGENTS)
-            self.context = await self.browser.new_context(
-                user_agent=user_agent,
-                viewport={'width': 1920, 'height': 1080},
-                extra_http_headers={
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1',
-                }
-            )
-            
-            # Create page
-            self.page = await self.context.new_page()
-            
-            # Set up request interception for better stealth
-            await self.page.route('**/*', self._handle_route)
-            
-            logger.info(f"Browser setup complete for {self.source_name}")
+            logger.info(f"HTTP session setup complete for {self.source_name}")
             
         except Exception as e:
-            error_msg = f"Failed to setup browser for {self.source_name}: {str(e)}"
+            error_msg = f"Failed to setup session for {self.source_name}: {str(e)}"
             logger.error(error_msg)
             self.errors.append(error_msg)
             raise
     
-    async def _handle_route(self, route):
-        """Handle route interception for stealth browsing."""
-        # Block unnecessary resources to speed up scraping
-        resource_type = route.request.resource_type
-        if resource_type in ['image', 'media', 'font', 'stylesheet']:
-            await route.abort()
-        else:
-            await route.continue_()
-    
-    async def cleanup(self):
-        """Clean up browser resources."""
-        try:
-            if self.page:
-                await self.page.close()
-            if self.context:
-                await self.context.close()
-            if self.browser:
-                await self.browser.close()
-            if hasattr(self, 'playwright'):
-                await self.playwright.stop()
-            logger.info(f"Browser cleanup complete for {self.source_name}")
-        except Exception as e:
-            logger.error(f"Error during cleanup for {self.source_name}: {str(e)}")
+
     
     async def scrape_jobs(self, search_params: Dict) -> List[JobData]:
         """Main scraping method - to be implemented by subclasses."""
@@ -213,13 +170,18 @@ class BaseJobScraper(ABC):
         logger.info(f"Filtered {len(jobs) - len(unique_jobs)} duplicates from {self.source_name}")
         return unique_jobs
     
-    async def safe_page_goto(self, url: str, retries: int = MAX_RETRIES) -> bool:
-        """Safely navigate to a URL with retries."""
+    async def fetch_page(self, url: str, retries: int = MAX_RETRIES) -> Optional[BeautifulSoup]:
+        """Safely fetch a page with retries."""
         for attempt in range(retries):
             try:
-                await self.page.goto(url, wait_until='domcontentloaded', timeout=30000)
-                await asyncio.sleep(REQUEST_DELAY)
-                return True
+                async with self.session.get(url) as response:
+                    if response.status == 200:
+                        html = await response.text()
+                        soup = BeautifulSoup(html, 'html.parser')
+                        await asyncio.sleep(REQUEST_DELAY)
+                        return soup
+                    else:
+                        logger.warning(f"HTTP {response.status} for {url}")
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
                 if attempt < retries - 1:
@@ -228,35 +190,26 @@ class BaseJobScraper(ABC):
                     error_msg = f"Failed to load {url} after {retries} attempts"
                     logger.error(error_msg)
                     self.errors.append(error_msg)
-                    return False
+        return None
     
-    async def safe_wait_for_selector(self, selector: str, timeout: int = 10000) -> bool:
-        """Safely wait for a selector with error handling."""
-        try:
-            await self.page.wait_for_selector(selector, timeout=timeout)
-            return True
-        except Exception as e:
-            logger.warning(f"Selector '{selector}' not found: {str(e)}")
-            return False
-    
-    async def extract_text_safe(self, selector: str, default: str = "") -> str:
+    def extract_text_safe(self, soup: BeautifulSoup, selector: str, default: str = "") -> str:
         """Safely extract text from an element."""
         try:
-            element = await self.page.query_selector(selector)
+            element = soup.select_one(selector)
             if element:
-                text = await element.text_content()
-                return text.strip() if text else default
+                text = element.get_text(strip=True)
+                return text if text else default
             return default
         except Exception as e:
             logger.debug(f"Failed to extract text from '{selector}': {str(e)}")
             return default
     
-    async def extract_attribute_safe(self, selector: str, attribute: str, default: str = "") -> str:
+    def extract_attribute_safe(self, soup: BeautifulSoup, selector: str, attribute: str, default: str = "") -> str:
         """Safely extract an attribute from an element."""
         try:
-            element = await self.page.query_selector(selector)
+            element = soup.select_one(selector)
             if element:
-                attr_value = await element.get_attribute(attribute)
+                attr_value = element.get(attribute)
                 return attr_value.strip() if attr_value else default
             return default
         except Exception as e:
@@ -279,3 +232,12 @@ class BaseJobScraper(ABC):
             'error_count': len(self.errors),
             'status': 'success' if not self.errors else 'partial' if self.jobs_found else 'failed'
         }
+    
+    async def cleanup(self):
+        """Clean up resources."""
+        try:
+            if self.session:
+                await self.session.close()
+                logger.info(f"Session cleanup complete for {self.source_name}")
+        except Exception as e:
+            logger.error(f"Error during cleanup for {self.source_name}: {str(e)}")
