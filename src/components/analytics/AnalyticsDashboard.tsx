@@ -93,7 +93,7 @@ const AnalyticsDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
@@ -108,13 +108,13 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Analytics</h2>
@@ -127,7 +127,7 @@ const AnalyticsDashboard: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -136,7 +136,7 @@ const AnalyticsDashboard: React.FC = () => {
   }
 
   return (
-    <motion.div
+    <motion.main
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -182,7 +182,7 @@ const AnalyticsDashboard: React.FC = () => {
         {/* Agent Activity Log */}
         <AgentActivityLog timeRange={timeRange} />
       </div>
-    </motion.div>
+    </motion.main>
   );
 };
 

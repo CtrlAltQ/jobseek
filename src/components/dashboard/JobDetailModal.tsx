@@ -73,12 +73,13 @@ export default function JobDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
           onClick={onClose}
+          aria-hidden="true"
         />
         
         {/* Modal */}
@@ -86,7 +87,7 @@ export default function JobDetailModal({
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-start">
             <div className="flex-1 pr-4">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 id="modal-title" className="text-2xl font-bold text-gray-900 mb-2">
                 {job.title}
               </h2>
               <div className="flex items-center text-gray-600 mb-3">
@@ -109,6 +110,7 @@ export default function JobDetailModal({
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Close modal"
             >
               <X className="w-6 h-6 text-gray-500" />
             </button>
