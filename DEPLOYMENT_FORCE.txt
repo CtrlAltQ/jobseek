@@ -1,3 +1,4 @@
 This file forces a fresh deployment.
-Timestamp: 2025-08-10 15:52:00
+Timestamp: 2025-08-10 18:02:00
+MongoDB connection should work now with correct hostname.
 Jeremy Clegg should show on the live site.
