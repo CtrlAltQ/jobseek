@@ -282,6 +282,29 @@ class DuplicateDetector:
             'similarity_threshold': self.similarity_threshold
         }
     
+    def remove_duplicates(self, jobs: List[Dict]) -> List[Dict]:
+        """
+        Remove duplicates from a list of jobs.
+        This is the main interface method expected by the scraping system.
+        
+        Args:
+            jobs: List of job dictionaries
+            
+        Returns:
+            List of unique jobs with duplicates removed
+        """
+        unique_jobs = []
+        
+        for job in jobs:
+            is_duplicate, reason = self.add_job(job)
+            if not is_duplicate:
+                unique_jobs.append(job)
+            else:
+                logger.debug(f"Duplicate removed: {job.get('title')} at {job.get('company')} - {reason}")
+        
+        logger.info(f"Removed {len(jobs) - len(unique_jobs)} duplicates from {len(jobs)} jobs")
+        return unique_jobs
+
     def clear(self):
         """Clear all tracking data."""
         self.exact_matches.clear()

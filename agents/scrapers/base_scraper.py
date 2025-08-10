@@ -122,6 +122,28 @@ class BaseJobScraper(ABC):
             logger.error(error_msg)
             self.errors.append(error_msg)
             raise
+
+    async def safe_page_goto(self, url: str, retries: int = MAX_RETRIES) -> bool:
+        """Safely navigate to a page with retries and error handling."""
+        for attempt in range(retries):
+            try:
+                async with self.session.get(url) as response:
+                    if response.status == 200:
+                        await asyncio.sleep(REQUEST_DELAY)
+                        return True
+                    else:
+                        logger.warning(f"HTTP {response.status} for {url}")
+                        
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
+                if attempt < retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    error_msg = f"Failed to navigate to {url} after {retries} attempts"
+                    logger.error(error_msg)
+                    self.errors.append(error_msg)
+                    
+        return False
     
 
     
