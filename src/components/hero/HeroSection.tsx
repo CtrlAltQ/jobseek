@@ -61,7 +61,7 @@ const HeroSection = () => {
               className="text-sm text-slate-500 dark:text-slate-400"
             >
               <p>
-                💡 This entire platform was custom-built to demonstrate my development skills
+                💡 This platform was custom-built to demonstrate my development skills
                 while solving my own job search challenges through AI automation.
               </p>
             </motion.div>
