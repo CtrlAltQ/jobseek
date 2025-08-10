@@ -17,8 +17,36 @@ export const metadata: Metadata = {
   description: "Personal AI-powered job search platform that automatically discovers and matches relevant job opportunities from multiple sources.",
   keywords: ["job search", "AI", "automation", "career", "employment"],
   authors: [{ name: "AI Job Finder" }],
-  viewport: "width=device-width, initial-scale=1",
+  openGraph: {
+    title: "AI Job Finder | Automated Job Discovery Platform",
+    description: "Personal AI-powered job search platform that automatically discovers and matches relevant job opportunities from multiple sources.",
+    url: process.env.NEXT_PUBLIC_API_URL || 'https://ai-job-finder.vercel.app',
+    siteName: "AI Job Finder",
+    images: [
+      {
+        url: '/og-image.svg',
+        width: 1200,
+        height: 630,
+        alt: 'AI Job Finder - Automated Job Discovery Platform',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "AI Job Finder | Automated Job Discovery Platform",
+    description: "Personal AI-powered job search platform that automatically discovers and matches relevant job opportunities from multiple sources.",
+    images: ['/og-image.svg'],
+  },
 };
+
+export function generateViewport() {
+  return {
+    width: 'device-width',
+    initialScale: 1,
+  }
+}
 
 export default function RootLayout({
   children,
