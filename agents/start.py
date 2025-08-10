@@ -41,7 +41,10 @@ def main():
         from api_client import create_api_client
         
         # Create API client
-        api_client = create_api_client()
+        api_client = create_api_client(
+            base_url=os.getenv('API_BASE_URL'),
+            api_key=os.getenv('AGENT_API_KEY')
+        )
         
         # Create and run coordinator
         coordinator = AgentCoordinator(api_client=api_client)
