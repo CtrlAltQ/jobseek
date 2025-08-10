@@ -25,11 +25,11 @@ const HeroSection = () => {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-slate-100 mb-4">
                 Hi, I&apos;m{' '}
                 <span className="text-blue-600 dark:text-blue-400">
-                  [Your Name]
+                  Jeremy Clegg
                 </span>
               </h1>
               <h2 className="text-xl sm:text-2xl text-slate-600 dark:text-slate-300 mb-6">
-                Full Stack Developer & AI Enthusiast
+                Full Stack Developer
               </h2>
             </motion.div>
 
