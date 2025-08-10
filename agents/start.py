@@ -38,16 +38,9 @@ def main():
     try:
         # Import and run the main coordinator
         from coordinator import AgentCoordinator
-        from api_client import create_api_client
         
-        # Create API client
-        api_client = create_api_client(
-            base_url=os.getenv('API_BASE_URL'),
-            api_key=os.getenv('AGENT_API_KEY')
-        )
-        
-        # Create and run coordinator
-        coordinator = AgentCoordinator(api_client=api_client)
+        # Create and run coordinator (it handles its own API client internally)
+        coordinator = AgentCoordinator()
         
         logger.info("Running job scraping cycle...")
         asyncio.run(coordinator.run_all_agents())
