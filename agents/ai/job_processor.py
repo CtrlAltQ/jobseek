@@ -11,13 +11,9 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from dataclasses import asdict
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from ai.ai_client import AIJobProcessor, JobAnalysis
-from scrapers.base_scraper import JobData
-from utils.data_utils import JobDataProcessor
+from agents.ai.ai_client import AIJobProcessor, JobAnalysis
+from agents.scrapers.base_scraper import JobData
+from agents.utils.data_utils import JobDataProcessor
 
 logger = logging.getLogger(__name__)
 

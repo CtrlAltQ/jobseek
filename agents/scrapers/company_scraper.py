@@ -12,12 +12,8 @@ from typing import List, Dict, Optional
 from urllib.parse import urljoin, urlparse
 import re
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from scrapers.base_scraper import BaseJobScraper, JobData
-from utils.data_utils import JobDataProcessor
+from agents.scrapers.base_scraper import BaseJobScraper, JobData
+from agents.utils.data_utils import JobDataProcessor
 
 logger = logging.getLogger(__name__)
 

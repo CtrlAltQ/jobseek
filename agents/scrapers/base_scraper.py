@@ -2,7 +2,7 @@
 Base Job Scraper Class
 
 This module provides the foundation for all job scraping implementations.
-It includes common functionality for web scraping, data extraction, and error handling.
+It includes common functionality for web scraping using Playwright.
 """
 
 import asyncio
@@ -13,14 +13,9 @@ from datetime import datetime
 from typing import List, Dict, Optional, Set
 from dataclasses import dataclass, asdict
 import random
-import aiohttp
-from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright, Page, Browser, Playwright
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from config import USER_AGENTS, REQUEST_DELAY, MAX_RETRIES
+from agents.config import USER_AGENTS, REQUEST_DELAY, MAX_RETRIES
 
 logger = logging.getLogger(__name__)
 
@@ -74,13 +69,15 @@ class JobData:
         return hashlib.md5(unique_string.encode()).hexdigest()
 
 class BaseJobScraper(ABC):
-    """Abstract base class for all job scrapers using aiohttp."""
+    """Abstract base class for all job scrapers using Playwright."""
     
     def __init__(self, source_name: str, base_url: str, rate_limit: float = 1.0):
         self.source_name = source_name
         self.base_url = base_url
         self.rate_limit = rate_limit
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.playwright: Optional[Playwright] = None
+        self.browser: Optional[Browser] = None
+        self.page: Optional[Page] = None
         self.jobs_found: List[JobData] = []
         self.duplicate_hashes: Set[str] = set()
         self.errors: List[str] = []
@@ -96,44 +93,34 @@ class BaseJobScraper(ABC):
         await self.cleanup()
         
     async def setup_session(self):
-        """Initialize aiohttp session."""
+        """Initialize Playwright session."""
         try:
-            # Create session with headers
-            headers = {
-                'User-Agent': random.choice(USER_AGENTS),
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-            }
-            
-            timeout = aiohttp.ClientTimeout(total=30)
-            self.session = aiohttp.ClientSession(
-                headers=headers,
-                timeout=timeout,
-                connector=aiohttp.TCPConnector(limit=10)
+            self.playwright = await async_playwright().start()
+            self.browser = await self.playwright.chromium.launch(headless=True)
+            self.page = await self.browser.new_page(
+                user_agent=random.choice(USER_AGENTS)
             )
-            
-            logger.info(f"HTTP session setup complete for {self.source_name}")
-            
+            logger.info(f"Playwright session setup complete for {self.source_name}")
         except Exception as e:
-            error_msg = f"Failed to setup session for {self.source_name}: {str(e)}"
+            error_msg = f"Failed to setup Playwright session for {self.source_name}: {str(e)}"
             logger.error(error_msg)
             self.errors.append(error_msg)
             raise
 
     async def safe_page_goto(self, url: str, retries: int = MAX_RETRIES) -> bool:
         """Safely navigate to a page with retries and error handling."""
+        if not self.page:
+            self.errors.append("Page object is not initialized.")
+            return False
         for attempt in range(retries):
             try:
-                async with self.session.get(url) as response:
-                    if response.status == 200:
-                        await asyncio.sleep(REQUEST_DELAY)
-                        return True
-                    else:
-                        logger.warning(f"HTTP {response.status} for {url}")
-                        
+                response = await self.page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                if response and response.ok:
+                    await asyncio.sleep(REQUEST_DELAY)
+                    return True
+                else:
+                    status = response.status if response else 'unknown'
+                    logger.warning(f"HTTP {status} for {url}")
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
                 if attempt < retries - 1:
@@ -142,30 +129,30 @@ class BaseJobScraper(ABC):
                     error_msg = f"Failed to navigate to {url} after {retries} attempts"
                     logger.error(error_msg)
                     self.errors.append(error_msg)
-                    
         return False
-    
 
-    
+    async def safe_wait_for_selector(self, selector: str, timeout: int = 10000) -> bool:
+        """Safely wait for a selector to appear on the page."""
+        if not self.page:
+            self.errors.append("Page object is not initialized.")
+            return False
+        try:
+            await self.page.wait_for_selector(selector, timeout=timeout)
+            return True
+        except Exception as e:
+            logger.warning(f"Timeout waiting for selector '{selector}': {e}")
+            return False
+
     async def scrape_jobs(self, search_params: Dict) -> List[JobData]:
-        """Main scraping method - to be implemented by subclasses."""
+        """Main scraping method."""
         try:
             logger.info(f"Starting job scraping for {self.source_name}")
-            
-            # Implement rate limiting
             await asyncio.sleep(1 / self.rate_limit)
-            
-            # Call the abstract scraping method
             jobs = await self._scrape_jobs_impl(search_params)
-            
-            # Filter duplicates
             unique_jobs = self._filter_duplicates(jobs)
-            
             self.jobs_found = unique_jobs
-            
             logger.info(f"Scraping complete for {self.source_name}: {len(unique_jobs)} unique jobs found")
             return unique_jobs
-            
         except Exception as e:
             error_msg = f"Scraping failed for {self.source_name}: {str(e)}"
             logger.error(error_msg)
@@ -180,76 +167,28 @@ class BaseJobScraper(ABC):
     def _filter_duplicates(self, jobs: List[JobData]) -> List[JobData]:
         """Filter out duplicate jobs based on hash."""
         unique_jobs = []
-        
         for job in jobs:
+            if not job: continue
             job_hash = job.get_hash()
             if job_hash not in self.duplicate_hashes:
                 self.duplicate_hashes.add(job_hash)
                 unique_jobs.append(job)
             else:
                 logger.debug(f"Duplicate job filtered: {job.title} at {job.company}")
-        
         logger.info(f"Filtered {len(jobs) - len(unique_jobs)} duplicates from {self.source_name}")
         return unique_jobs
-    
-    async def fetch_page(self, url: str, retries: int = MAX_RETRIES) -> Optional[BeautifulSoup]:
-        """Safely fetch a page with retries."""
-        for attempt in range(retries):
-            try:
-                async with self.session.get(url) as response:
-                    if response.status == 200:
-                        html = await response.text()
-                        soup = BeautifulSoup(html, 'html.parser')
-                        await asyncio.sleep(REQUEST_DELAY)
-                        return soup
-                    else:
-                        logger.warning(f"HTTP {response.status} for {url}")
-            except Exception as e:
-                logger.warning(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
-                if attempt < retries - 1:
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                else:
-                    error_msg = f"Failed to load {url} after {retries} attempts"
-                    logger.error(error_msg)
-                    self.errors.append(error_msg)
-        return None
-    
-    def extract_text_safe(self, soup: BeautifulSoup, selector: str, default: str = "") -> str:
-        """Safely extract text from an element."""
-        try:
-            element = soup.select_one(selector)
-            if element:
-                text = element.get_text(strip=True)
-                return text if text else default
-            return default
-        except Exception as e:
-            logger.debug(f"Failed to extract text from '{selector}': {str(e)}")
-            return default
-    
-    def extract_attribute_safe(self, soup: BeautifulSoup, selector: str, attribute: str, default: str = "") -> str:
-        """Safely extract an attribute from an element."""
-        try:
-            element = soup.select_one(selector)
-            if element:
-                attr_value = element.get(attribute)
-                return attr_value.strip() if attr_value else default
-            return default
-        except Exception as e:
-            logger.debug(f"Failed to extract attribute '{attribute}' from '{selector}': {str(e)}")
-            return default
     
     def get_execution_stats(self) -> Dict:
         """Get execution statistics."""
         end_time = datetime.now()
         duration = end_time - self.start_time
-        
         return {
             'source': self.source_name,
             'start_time': self.start_time.isoformat(),
             'end_time': end_time.isoformat(),
             'duration_seconds': duration.total_seconds(),
             'jobs_found': len(self.jobs_found),
-            'jobs_processed': len(self.jobs_found),  # Will be updated in processing pipeline
+            'jobs_processed': len(self.jobs_found),
             'errors': self.errors,
             'error_count': len(self.errors),
             'status': 'success' if not self.errors else 'partial' if self.jobs_found else 'failed'
@@ -258,8 +197,10 @@ class BaseJobScraper(ABC):
     async def cleanup(self):
         """Clean up resources."""
         try:
-            if self.session:
-                await self.session.close()
-                logger.info(f"Session cleanup complete for {self.source_name}")
+            if self.browser:
+                await self.browser.close()
+            if self.playwright:
+                await self.playwright.stop()
+            logger.info(f"Playwright session cleanup complete for {self.source_name}")
         except Exception as e:
-            logger.error(f"Error during cleanup for {self.source_name}: {str(e)}")
+            logger.error(f"Error during Playwright cleanup for {self.source_name}: {str(e)}")
