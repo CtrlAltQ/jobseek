@@ -11,17 +11,13 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from scrapers.indeed_scraper import IndeedScraper
-from scrapers.linkedin_scraper import LinkedInScraper
-from scrapers.remote_ok_scraper import RemoteOKScraper
-from scrapers.weworkremotely_scraper import WeWorkRemotelyScraper
-from scrapers.company_scraper import CompanyScraper
-from scrapers.base_scraper import JobData
-from utils.duplicate_detector import DuplicateDetector
+from agents.scrapers.indeed_scraper import IndeedScraper
+from agents.scrapers.linkedin_scraper import LinkedInScraper
+from agents.scrapers.remote_ok_scraper import RemoteOKScraper
+from agents.scrapers.weworkremotely_scraper import WeWorkRemotelyScraper
+from agents.scrapers.company_scraper import CompanyScraper
+from agents.scrapers.base_scraper import JobData
+from agents.utils.duplicate_detector import DuplicateDetector
 
 logger = logging.getLogger(__name__)
 
